@@ -13,8 +13,12 @@ fade_amount = 1285  # 2% stepping of 2^16
 pixel_pin = board.D1
 num_pixels = 7
 pixels = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=0.33, auto_write=False, pixel_order=neopixel.GRBW)
+BLUE = (0, 0, 255, 10)
 BLACK = (0, 0, 0, 0)
 wheel_count = 0
+
+chase_count = 0
+chase_delay = 0
 
 
 def sequin_pulse():
@@ -52,11 +56,26 @@ def wheel():
     pixels[0] = color
 
 
+def comet_tail():
+    global chase_count, chase_delay
+    next_count = chase_count + 1
+    pixels[next_count] = BLUE
+    pixels[((next_count + 4) % 6) + 1] = (0, 0, 100)
+    pixels[((next_count + 3) % 6) + 1] = (0, 0, 50)
+    pixels[((next_count + 2) % 6) + 1] = (0, 0, 10)
+
+    if chase_delay == 2:
+        chase_count = (chase_count + 1) % 6
+
+    chase_delay = (chase_delay + 1) % 3
+
+
 while True:
     pixels.fill(BLACK)
 
-    wheel()
     sequin_pulse()
+    wheel()
+    comet_tail()
 
     pixels.show()
 
