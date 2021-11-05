@@ -2,6 +2,7 @@ import time
 import board
 import pwmio
 import neopixel
+from touchio import TouchIn
 
 # PWM (fading) LEDs are connected on D2
 pwm_leds = board.D2
@@ -19,6 +20,13 @@ wheel_count = 0
 
 chase_count = 0
 chase_delay = 0
+
+# Capacitive touch on A2
+touch = TouchIn(board.A2)
+touch.threshold = 1700
+previous_touch = False
+current_touch = False
+touch_event = False
 
 
 def sequin_pulse():
@@ -70,7 +78,19 @@ def comet_tail():
     chase_delay = (chase_delay + 1) % 3
 
 
+def touch_check():
+    global current_touch, previous_touch, touch_event
+    current_touch = touch.value
+    if current_touch and not previous_touch:
+        print('touch: ', touch.raw_value)
+        touch_event = True
+
+    previous_touch = current_touch
+
+
 while True:
+    touch_check()
+
     pixels.fill(BLACK)
 
     sequin_pulse()
