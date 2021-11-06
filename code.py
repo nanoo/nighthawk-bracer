@@ -27,6 +27,9 @@ touch.threshold = 1700
 previous_touch = False
 current_touch = False
 touch_event = False
+touch_event_type = 'SINGLE'
+current_touch_event_time = 0
+previous_touch_event_time = 0
 
 
 def sequin_pulse():
@@ -78,24 +81,61 @@ def comet_tail():
     chase_delay = (chase_delay + 1) % 3
 
 
+# We store two debounced touch event times
 def touch_check():
     global current_touch, previous_touch, touch_event
+    global current_touch_event_time, previous_touch_event_time, touch_event_type
     current_touch = touch.value
     if current_touch and not previous_touch:
-        print('touch: ', touch.raw_value)
-        touch_event = True
+        # print('touch: ', touch.raw_value)
+        previous_touch_event_time = current_touch_event_time
+        current_touch_event_time = int(time.monotonic() * 100)
 
+        if current_touch_event_time - previous_touch_event_time > 25:
+            touch_event_type = 'SINGLE'
+        else:
+            touch_event_type = 'DOUBLE'
+
+        touch_event = True
+        # print('touch time: ', current_touch_event_time)
+        # print('touch type: ', touch_event_type)
     previous_touch = current_touch
+
+
+RELAXED_MODE = 'relaxed'
+FIGHT_MODE = 'fighting'
+FLASHLIGHT_MODE = 'flashlight'
+current_mode = RELAXED_MODE
+
+
+def handle_touch():
+    global touch_event, current_touch_event_time, touch_event_type, current_mode
+
+    if touch_event and int(time.monotonic() * 100) - current_touch_event_time > 30:
+        touch_event = False
+        switch = {
+            RELAXED_MODE: FIGHT_MODE,
+            FIGHT_MODE: FLASHLIGHT_MODE,
+            FLASHLIGHT_MODE: RELAXED_MODE
+        }
+        current_mode = switch.get(current_mode)
 
 
 while True:
     touch_check()
+    handle_touch()
 
     pixels.fill(BLACK)
-
-    sequin_pulse()
-    wheel()
-    comet_tail()
+    if current_mode == RELAXED_MODE:
+        sequin_pulse()
+        wheel()
+    if current_mode == FIGHT_MODE:
+        sequin_pulse()
+        wheel()
+        comet_tail()
+    if current_mode == FLASHLIGHT_MODE:
+        pixels.fill(BLACK)
+        pwm.duty_cycle = 0
 
     pixels.show()
 
