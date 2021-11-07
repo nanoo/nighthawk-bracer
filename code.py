@@ -14,6 +14,7 @@ fade_amount = 1285  # 2% stepping of 2^16
 pixel_pin = board.D1
 num_pixels = 7
 pixels = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=0.33, auto_write=False, pixel_order=neopixel.GRBW)
+WHITE = (255, 255, 255, 255)
 BLUE = (0, 0, 255, 10)
 BLACK = (0, 0, 0, 0)
 wheel_count = 0
@@ -81,6 +82,12 @@ def comet_tail():
     chase_delay = (chase_delay + 1) % 3
 
 
+def flashlight():
+    for x in range(0, 7):
+        pixels[x] = WHITE
+    pwm.duty_cycle = 0
+
+
 # We store two debounced touch event times
 def touch_check():
     global current_touch, previous_touch, touch_event
@@ -115,17 +122,15 @@ def handle_touch():
         touch_event = False
         switch = {
             RELAXED_MODE: FIGHT_MODE,
-            FIGHT_MODE: FLASHLIGHT_MODE,
+            FIGHT_MODE: RELAXED_MODE,
             FLASHLIGHT_MODE: RELAXED_MODE
         }
         current_mode = switch.get(current_mode)
+        if touch_event_type == 'DOUBLE':
+            current_mode = FLASHLIGHT_MODE
 
 
-while True:
-    touch_check()
-    handle_touch()
-
-    pixels.fill(BLACK)
+def animate():
     if current_mode == RELAXED_MODE:
         sequin_pulse()
         wheel()
@@ -134,9 +139,15 @@ while True:
         wheel()
         comet_tail()
     if current_mode == FLASHLIGHT_MODE:
-        pixels.fill(BLACK)
-        pwm.duty_cycle = 0
+        flashlight()
 
+
+while True:
+    touch_check()
+    handle_touch()
+
+    pixels.fill(BLACK)
+    animate()
     pixels.show()
 
     time.sleep(0.015)
